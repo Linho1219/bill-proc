@@ -105,7 +105,7 @@ const processors: ProcessMethod[] = [
   {
     // 教育超市买零食
     // 全部判定为零食，因为生活用品都是上网买的
-    match: ({ place }) => place === "四平路校区第一超市",
+    match: ({ place }) => place.includes("超市"),
     process: (rec) => ({
       ...expense(rec),
       ...snack(),

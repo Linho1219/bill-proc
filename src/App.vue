@@ -37,6 +37,7 @@ import { computed, onMounted, ref } from "vue";
 import DisplayData from "@/components/display.vue";
 import CopyCode from "@/components/copycode.vue";
 import DownloadBtn from "./components/downloadbtn.vue";
+import { Snackbar } from "sober";
 
 const rawJSON = ref("");
 import { RawRec, Rec, RecWithSelect } from "@/types.ts";
@@ -61,17 +62,19 @@ const processedObj = computed(() => {
       amount: Math.round(Number(amount) * 100),
       type,
       balance: Math.round(Number(balance) * 100),
-    })
+    }),
   );
   const result: Rec[] = [];
   let jumpto = -1;
+  let errorCount = 0;
+  let errorAmount = 0;
   for (const [index, rec] of data.entries()) {
     if (index < jumpto) continue;
     const processor = config.find(({ match }) => match(rec));
     if (!processor) {
-      console.error(
-        `No processor found for record ${index}: ${JSON.stringify(rec)}`
-      );
+      console.error(`No processor found for record ${index}:`, rec);
+      errorCount++;
+      errorAmount += rec.amount;
       continue;
     }
     if (!processor.squeeze) {
@@ -88,6 +91,12 @@ const processedObj = computed(() => {
       result.push(processor.process(data.slice(index, i)));
       jumpto = i;
     }
+  }
+  if (errorCount > 0) {
+    Snackbar.builder({
+      text: `${errorCount} 条记录未匹配，总金额 ${(errorAmount / 100).toFixed(2)}`,
+      type: "warning",
+    });
   }
   return result;
 });
@@ -153,7 +162,13 @@ s-divider {
 }
 
 .monospace-field::part(input) {
-  font-family: JetBrains Mono, SF Mono, Menlo, Monaco, Consolas, "Courier New",
+  font-family:
+    JetBrains Mono,
+    SF Mono,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Courier New",
     monospace;
   font-size: 1rem;
 }
